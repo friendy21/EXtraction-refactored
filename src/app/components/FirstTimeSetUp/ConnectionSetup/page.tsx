@@ -24,6 +24,7 @@ import { Label } from "../../ui/label";
 import { Textarea } from "../../ui/textarea";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "../../ui/tooltip";
 import { toast } from "sonner";
+import { ConnectionTemplateSelector } from "../../../../components/widgets/connections";
 
 // Define types
 type ConnectionStatus = {
@@ -292,6 +293,17 @@ const ConnectionPage: React.FC = () => {
   const [jiraForm, setJiraForm] = useState<JiraConfig>({ clientId: "jira-client-12345", clientSecret: "jira-secret-67890", redirectUri: typeof window !== "undefined" ? window.location.origin + "/auth/jira/callback" : "", instanceUrl: "https://example.atlassian.net" });
   const [customAPIForm, setCustomAPIForm] = useState<Omit<CustomAPI, "id" | "name" | "isConnected">>({ apiUrl: "", apiKey: "", headers: '{"Content-Type": "application/json"}', authType: "Bearer" });
   const [showConnectionRequiredTooltip, setShowConnectionRequiredTooltip] = useState(false);
+  const [widgetOrder, setWidgetOrder] = useState<string[]>([
+    "microsoft365",
+    "googleWorkspace",
+    "dropbox",
+    "slack",
+    "zoom",
+    "jira",
+    "template",
+    ...customAPIs.map((api) => `custom-${api.id}`),
+    "addApi",
+  ]);
 
   const isAnyConnected = React.useMemo(() => Object.values(connections).some(Boolean) || customAPIs.some((api) => api.isConnected), [connections, customAPIs]);
   const router = useRouter();
@@ -501,6 +513,26 @@ const ConnectionPage: React.FC = () => {
     </Button>
   );
 
+  const handleDragStart = (index: number) => (e: React.DragEvent<HTMLDivElement>) => {
+    e.dataTransfer.setData("text/plain", String(index));
+  };
+
+  const handleDrop = (index: number) => (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const from = Number(e.dataTransfer.getData("text/plain"));
+    if (from === index) return;
+    setWidgetOrder((prev) => {
+      const updated = [...prev];
+      const [moved] = updated.splice(from, 1);
+      updated.splice(index, 0, moved);
+      return updated;
+    });
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  };
+
   return (
     <main className="min-h-screen bg-background">
       <div className="container px-4 py-6 md:px-6 md:py-12 lg:py-16">
@@ -510,75 +542,134 @@ const ConnectionPage: React.FC = () => {
             <p className="text-muted-foreground mt-2">Connect to your workplace platforms to collect data for analysis.</p>
           </div>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {renderPlatformCard(
-              "Microsoft 365",
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 23 23" className="bg-[#f3f2f1]">
-                <path fill="#F25022" d="M1 1h9v9H1z" />
-                <path fill="#80BA01" d="M13 1h9v9h-9z" />
-                <path fill="#02A4EF" d="M1 13h9v9H1z" />
-                <path fill="#FFB902" d="M13 13h9v9h-9z" />
-              </svg>,
-              "Connect to access emails, calendar, SharePoint, and Teams data.",
-              "microsoft365",
-              "microsoft365"
-            )}
-            {renderPlatformCard(
-              "Google Workspace",
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" className="bg-white">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-              </svg>,
-              "Connect to access Gmail, Calendar, Drive, and Google Chat data.",
-              "googleWorkspace",
-              "googleWorkspace"
-            )}
-            {renderPlatformCard(
-              "Dropbox",
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white" className="bg-[#0061ff]">
-                <path d="M12 14.56l4.07-3.32 4.43 2.94-4.43 2.94L12 14.56zm-8.5-0.38l4.43-2.94 4.07 3.32-4.07 2.56L3.5 14.18zm8.5-7.37l4.07 3.32-4.07 2.56-4.07-2.56L12 6.81zm-4.07 5.88L3.5 9.75l4.43-2.94 4.07 2.56-4.07 3.32z" />
-              </svg>,
-              "Connect to access Dropbox files and sharing activities.",
-              "dropbox",
-              "dropbox"
-            )}
-            {renderPlatformCard(
-              "Slack",
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white" className="bg-[#4A154B]">
-                <path d="M6 15a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm0-6a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm6 0a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm6 0a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm-6 6a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm6 0a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" />
-              </svg>,
-              "Connect to access Slack messages and activity data.",
-              "slack",
-              "slack"
-            )}
-            {renderPlatformCard(
-              "Zoom",
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white" className="bg-[#2D8CFF]">
-                <path d="M16 8v8H8V8h8m0-2H8c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm4 2v8h-1V8h1m0-2h-1c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h1c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zM5 8v8H4V8h1m0-2H4c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h1c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z" />
-              </svg>,
-              "Connect to access Zoom meeting and participant data.",
-              "zoom",
-              "zoom"
-            )}
-            {renderPlatformCard(
-              "Jira",
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white" className="bg-[#0052CC]">
-                <path d="M11.53 2l-4.78 4.78 4.78 4.78 4.78-4.78L11.53 2zm-4.78 4.78L2 11.53l4.78 4.78 4.78-4.78-4.78-4.78zm9.56 0l-4.78 4.78 4.78 4.78L21.06 11.53l-4.78-4.78zm-4.78 4.78L6.74 16.31l4.78 4.78 4.78-4.78-4.78-4.78z" />
-              </svg>,
-              "Connect to access Jira issues, projects, and workflow data.",
-              "jira",
-              "jira"
-            )}
-            {customAPIs.map((api) => (
-              <CustomAPICard key={api.id} api={api} onConnect={() => connectCustomAPI(api.id)} onDisconnect={() => disconnectCustomAPI(api.id)} onSettings={() => showCustomAPISettingsModal(api.id)} onStats={() => showCustomAPIStatsModal(api.id)} onRename={(newName) => renameCustomAPI(api.id, newName)} onDelete={() => deleteCustomAPI(api.id)} />
-            ))}
-            <Card className="bg-white border border-dashed border-gray-300 shadow-sm hover:shadow-md rounded-lg transition-all duration-300 cursor-pointer" onClick={addCustomAPI}>
-              <div className="flex flex-col items-center justify-center p-6 h-full">
-                <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3"><Plus className="h-6 w-6 text-gray-500" /></div>
-                <p className="text-center text-gray-500 font-medium">Add New API Connection</p>
-              </div>
-            </Card>
+            {widgetOrder.map((id, idx) => {
+              let node: React.ReactNode = null;
+              switch (id) {
+                case "microsoft365":
+                  node = renderPlatformCard(
+                    "Microsoft 365",
+                    (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 23 23" className="bg-[#f3f2f1]">
+                        <path fill="#F25022" d="M1 1h9v9H1z" />
+                        <path fill="#80BA01" d="M13 1h9v9h-9z" />
+                        <path fill="#02A4EF" d="M1 13h9v9H1z" />
+                        <path fill="#FFB902" d="M13 13h9v9h-9z" />
+                      </svg>
+                    ),
+                    "Connect to access emails, calendar, SharePoint, and Teams data.",
+                    "microsoft365",
+                    "microsoft365"
+                  );
+                  break;
+                case "googleWorkspace":
+                  node = renderPlatformCard(
+                    "Google Workspace",
+                    (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" className="bg-white">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                      </svg>
+                    ),
+                    "Connect to access Gmail, Calendar, Drive, and Google Chat data.",
+                    "googleWorkspace",
+                    "googleWorkspace"
+                  );
+                  break;
+                case "dropbox":
+                  node = renderPlatformCard(
+                    "Dropbox",
+                    (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white" className="bg-[#0061ff]">
+                        <path d="M12 14.56l4.07-3.32 4.43 2.94-4.43 2.94L12 14.56zm-8.5-.38l4.43-2.94 4.07 3.32-4.07 2.56L3.5 14.18zm8.5-7.37l4.07 3.32-4.07 2.56-4.07-2.56L12 6.81zm-4.07 5.88L3.5 9.75l4.43-2.94 4.07 2.56-4.07 3.32z" />
+                      </svg>
+                    ),
+                    "Connect to access Dropbox files and sharing activities.",
+                    "dropbox",
+                    "dropbox"
+                  );
+                  break;
+                case "slack":
+                  node = renderPlatformCard(
+                    "Slack",
+                    (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white" className="bg-[#4A154B]">
+                        <path d="M6 15a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm0-6a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm6 0a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm6 0a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm-6 6a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm6 0a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" />
+                      </svg>
+                    ),
+                    "Connect to access Slack messages and activity data.",
+                    "slack",
+                    "slack"
+                  );
+                  break;
+                case "zoom":
+                  node = renderPlatformCard(
+                    "Zoom",
+                    (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white" className="bg-[#2D8CFF]">
+                        <path d="M16 8v8H8V8h8m0-2H8c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm4 2v8h-1V8h1m0-2h-1c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h1c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zM5 8v8H4V8h1m0-2H4c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h1c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z" />
+                      </svg>
+                    ),
+                    "Connect to access Zoom meeting and participant data.",
+                    "zoom",
+                    "zoom"
+                  );
+                  break;
+                case "jira":
+                  node = renderPlatformCard(
+                    "Jira",
+                    (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white" className="bg-[#0052CC]">
+                        <path d="M11.53 2l-4.78 4.78 4.78 4.78 4.78-4.78L11.53 2zm-4.78 4.78L2 11.53l4.78 4.78 4.78-4.78-4.78-4.78zm9.56 0l-4.78 4.78 4.78 4.78L21.06 11.53l-4.78-4.78zm-4.78 4.78L6.74 16.31l4.78 4.78 4.78-4.78-4.78-4.78z" />
+                      </svg>
+                    ),
+                    "Connect to access Jira issues, projects, and workflow data.",
+                    "jira",
+                    "jira"
+                  );
+                  break;
+                case "template":
+                  node = <ConnectionTemplateSelector />;
+                  break;
+                case "addApi":
+                  node = (
+                    <Card className="bg-white border border-dashed border-gray-300 shadow-sm hover:shadow-md rounded-lg transition-all duration-300 cursor-pointer" onClick={addCustomAPI}>
+                      <div className="flex flex-col items-center justify-center p-6 h-full">
+                        <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3"><Plus className="h-6 w-6 text-gray-500" /></div>
+                        <p className="text-center text-gray-500 font-medium">Add New API Connection</p>
+                      </div>
+                    </Card>
+                  );
+                  break;
+                default:
+                  if (id.startsWith("custom-")) {
+                    const apiId = id.slice(7);
+                    const api = customAPIs.find((a) => a.id === apiId);
+                    if (api) {
+                      node = (
+                        <CustomAPICard
+                          key={api.id}
+                          api={api}
+                          onConnect={() => connectCustomAPI(api.id)}
+                          onDisconnect={() => disconnectCustomAPI(api.id)}
+                          onSettings={() => showCustomAPISettingsModal(api.id)}
+                          onStats={() => showCustomAPIStatsModal(api.id)}
+                          onRename={(newName) => renameCustomAPI(api.id, newName)}
+                          onDelete={() => deleteCustomAPI(api.id)}
+                        />
+                      );
+                    }
+                  }
+                  break;
+              }
+              if (!node) return null;
+              return (
+                <div key={id} draggable onDragStart={handleDragStart(idx)} onDragOver={handleDragOver} onDrop={handleDrop(idx)}>
+                  {node}
+                </div>
+              );
+            })}
           </div>
           <div className="flex justify-between mt-4">
             <Button onClick={handleBack} className="bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg">Back</Button>
