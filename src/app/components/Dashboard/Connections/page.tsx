@@ -18,6 +18,7 @@ const ConnectionsPage: React.FC = () => {
     { id: 'template' },
     { id: 'history' }
   ]);
+  const [selectedConnectionId, setSelectedConnectionId] = useState<string | null>(null);
 
   const handleDragStart = (index: number) => (event: React.DragEvent<HTMLDivElement>) => {
     event.dataTransfer.setData('text/plain', String(index));
@@ -40,9 +41,18 @@ const ConnectionsPage: React.FC = () => {
   const renderWidget = (id: string) => {
     switch (id) {
       case 'manager':
-        return <ConnectionManager showAddButton />;
+        return (
+          <ConnectionManager
+            showAddButton
+            onConnectionSelect={(c) => setSelectedConnectionId(c.id)}
+          />
+        );
       case 'history':
-        return <ConnectionHistory connectionId="1" />;
+        return selectedConnectionId ? (
+          <ConnectionHistory connectionId={selectedConnectionId} />
+        ) : (
+          <div className="p-4 text-center text-sm text-gray-600">Select a connection to view history</div>
+        );
       case 'template':
         return <ConnectionTemplateSelector />;
       default:
