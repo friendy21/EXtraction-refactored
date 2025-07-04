@@ -7,6 +7,13 @@ import { Button } from '../../../app/components/ui/button';
 import { Input } from '../../../app/components/ui/input';
 import { Label } from '../../../app/components/ui/label';
 import { ConnectionSettings } from '../../../types/connections';
+=======
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../app/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '../../app/components/ui/card';
+import { Button } from '../../app/components/ui/button';
+import { Input } from '../../app/components/ui/input';
+import { Label } from '../../app/components/ui/label';
+import { ConnectionSettings } from '../../types/connections';
 import { useConnectionTemplates, ConnectionTemplate } from '../../../hooks/useConnectionTemplates';
 
 const DEFAULT_TEMPLATES: ConnectionTemplate[] = [
