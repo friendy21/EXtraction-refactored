@@ -1,18 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../app/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '../../app/components/ui/card';
 import { Button } from '../../app/components/ui/button';
 import { Input } from '../../app/components/ui/input';
 import { Label } from '../../app/components/ui/label';
 import { ConnectionSettings } from '../../types/connections';
-
-interface ConnectionTemplate {
-  id: string;
-  name: string;
-  settings: ConnectionSettings;
-}
+import { useConnectionTemplates, ConnectionTemplate } from '../../../hooks/useConnectionTemplates';
 
 const DEFAULT_TEMPLATES: ConnectionTemplate[] = [
   {
@@ -38,9 +33,15 @@ const DEFAULT_TEMPLATES: ConnectionTemplate[] = [
 ];
 
 export function ConnectionTemplateSelector() {
-  const [templates, setTemplates] = useState<ConnectionTemplate[]>(DEFAULT_TEMPLATES);
-  const [selected, setSelected] = useState<string>('');
+  const { templates, addTemplate } = useConnectionTemplates();
+  const [selected, setSelected] = useState('');
   const [newName, setNewName] = useState('');
+
+  useEffect(() => {
+    if (templates.length === 0) {
+      DEFAULT_TEMPLATES.forEach(t => addTemplate(t));
+    }
+  }, [templates.length, addTemplate]);
 
   const handleAddTemplate = () => {
     if (!newName.trim()) return;
@@ -49,7 +50,7 @@ export function ConnectionTemplateSelector() {
       name: newName,
       settings: DEFAULT_TEMPLATES[0].settings
     };
-    setTemplates([...templates, newTemplate]);
+    addTemplate(newTemplate);
     setNewName('');
   };
 
